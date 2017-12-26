@@ -22,3 +22,14 @@ VaultExec can be configured both by command line options and environment variabl
 ## Getting VaultExec
 
 [TODO - Include links to binaries in releases.]
+
+## Building VaultExec Locally
+
+Requirements:
+
+- govendor
+- gox
+
+Run the following to generate release binaries:
+
+`gox -output="bin/{{.Dir}}_{{.OS}}_{{.Arch}}"`
