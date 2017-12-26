@@ -21,7 +21,7 @@ VaultExec can be configured both by command line options and environment variabl
 
 ## Getting VaultExec
 
-[TODO - Include links to binaries in releases.]
+Check out the releases and grab the appropriately built binary: https://github.com/funnylookinhat/vaultexec/releases
 
 ## Building VaultExec Locally
 
