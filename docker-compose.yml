@@ -1,0 +1,36 @@
+
+version: '2'
+services:
+  app:
+    image: golang:1.9.2-alpine
+    depends_on:
+      - vault_init
+      - vault
+    volumes:
+      - .:/go/src/vaultexec
+    working_dir: /go/src/vaultexec
+    command: go run main.go vault.go run.go printenv
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: test_token
+      VAULT_PATH: secret/test_secrets/all
+
+  vault:
+    image: vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: test_token
+
+  # Initializes local vault with dev secrets then terminates
+  vault_init:
+    image: vault
+    depends_on:
+      - vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: test_token
+    command: 'sh -c "VAULT_ADDR=http://vault:8200 VAULT_TOKEN=$$VAULT_DEV_ROOT_TOKEN_ID vault write secret/test_secrets/all @/test_secrets.json"'
+    volumes:
+      - ./test/secrets.json:/test_secrets.json
