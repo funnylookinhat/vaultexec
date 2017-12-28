@@ -45,12 +45,9 @@ func main() {
 	vaultSecrets, err := GetVaultSecrets(config)
 	errCheck(err)
 
-	errChan, err := RunWithEnvVars(cmd, vaultSecrets)
-	errCheck(err)
-
-	// This channel returns nil if the process exits without an error and has no
-	// problems copying the stdout / stderr
-	err = <-errChan
+	// This is a blocking call that runs several go-funcs to manage sending
+	// signals to the process.
+	err = RunWithEnvVars(cmd, vaultSecrets)
 	errCheck(err)
 
 	os.Exit(0)
