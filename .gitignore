@@ -2,3 +2,8 @@ vendor/*
 !vendor/vendor.json
 bin/*
 
+# Binaries that are built when following the readme.
+vaultexec
+test/signal_echo
+
+

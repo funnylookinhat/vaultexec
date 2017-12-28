@@ -1,5 +1,7 @@
 package main
 
+// This is a utility binary for testing the signal control for vaultexec.
+
 import (
 	"fmt"
 	"os"
