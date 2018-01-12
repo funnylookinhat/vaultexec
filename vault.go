@@ -85,6 +85,10 @@ func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
 
 	resp, err := client.Do(req)
 
+	if err != nil {
+		return nil, err
+	}
+
 	defer resp.Body.Close()
 
 	if err != nil {

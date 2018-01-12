@@ -1,5 +1,11 @@
+# flippin os x
+**/.DS_Store
+
+# govendor - keep vendor.json but exclude what it pulls down.
 vendor/*
 !vendor/vendor.json
+
+# where gox binaries are built
 bin/*
 
 # Binaries that are built when following the readme.
