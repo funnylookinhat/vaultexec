@@ -83,6 +83,10 @@ func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
 	req.Header.Add("X-Vault-Token", config.Token)
 
 	resp, err := client.Do(req)
+	// TODO Handle vault return status code
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("vault server returned status: %d", resp.StatusCode)
+	}
 
 	if err != nil {
 		return nil, err
@@ -95,6 +99,7 @@ func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	// TODO error on empty bodyBytes
 
 	if err != nil {
 		return nil, err
@@ -106,6 +111,22 @@ func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
 		return nil, err
 	}
 
+	/*
+		// Here is an alternative to simplify your JSON extraction since the desired
+		// data is just a string->string object anyway. You don't get to use your
+		// easyjson package, but since the shape of the data is simple, you can just
+		// use an anonymous struct to describe what you want, and then just return
+		// the data directly.
+
+		var data struct {
+			Data map[string]string `json:"data"`
+		}
+		if err := json.Unmarshal(bodyBytes, &data); err != nil {
+			return nil, err
+		}
+		return data
+	*/
+
 	vaultData, err := easyjson.GetMap(bodyJSON, "data")
 
 	if err != nil {
@@ -114,6 +135,9 @@ func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
 
 	vaultSecrets := make(map[string]string)
 
+	// TODO Don't allocate a new string for k when the key type from GetMap is
+	// already a string. All of this is just because the value type of GetMap is
+	// interface{}?
 	for k, v := range vaultData {
 		vaultSecrets[fmt.Sprintf("%s", k)] = fmt.Sprintf("%s", v)
 	}
