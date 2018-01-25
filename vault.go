@@ -51,6 +51,8 @@ func GenerateVaultConfig(address *string, token *string, path *string) (VaultCon
 		config.Address = config.Address[:len(config.Address)-1]
 	}
 
+	// TODO validate Address has a protocol (https, etc.). Could cause an error in
+	// GetVaultSecrets you could catch now.
 	if len(config.Address) == 0 {
 		return config, errors.New("Missing Vault address")
 	}
