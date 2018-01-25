@@ -37,10 +37,10 @@ func main() {
 		errCheck(errors.New("Must provide a command"))
 	}
 
-	config := GenerateVaultConfig(address, token, path)
-
-	err := ValidateVaultConfig(config)
-	errCheck(err)
+	config, err := GenerateVaultConfig(address, token, path)
+	if err != nil {
+		errCheck(err)
+	}
 
 	vaultSecrets, err := GetVaultSecrets(config)
 	errCheck(err)

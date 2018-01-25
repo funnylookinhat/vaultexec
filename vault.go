@@ -22,14 +22,28 @@ type VaultConfig struct {
 
 // GenerateVaultConfig using arguments and environment variables: VAULT_ADDR,
 // VAULT_TOKEN, and VAULT_PATH
-func GenerateVaultConfig(address *string, token *string, path *string) VaultConfig {
-	config := VaultConfig{}
+//
+// TODO: Verify & document that command-line args *always* take precedence over
+// environment variables and document it as such. If you intend to run this in a
+// container or something, you lose the ability to change values from the host
+// environment without changing the Docker image since the command-line
+// variables take precedent.
+func GenerateVaultConfig(address *string, token *string, path *string) (VaultConfig, error) {
+	config := VaultConfig{
+		Address: *address,
+		Token:   *token,
+		Path:    *path,
+	}
 
 	// Then if any options are still blank we read the environment variables.
-	if len(*address) > 0 {
-		config.Address = *address
-	} else {
+	if len(config.Address) == 0 {
 		config.Address = os.Getenv("VAULT_ADDR")
+	}
+	if len(config.Token) == 0 {
+		config.Token = os.Getenv("VAULT_TOKEN")
+	}
+	if len(config.Path) == 0 {
+		config.Path = os.Getenv("VAULT_PATH")
 	}
 
 	// Ensure that the address doesn't end in a trailing slash.
@@ -37,36 +51,19 @@ func GenerateVaultConfig(address *string, token *string, path *string) VaultConf
 		config.Address = config.Address[:len(config.Address)-1]
 	}
 
-	if len(*token) > 0 {
-		config.Token = *token
-	} else {
-		config.Token = os.Getenv("VAULT_TOKEN")
-	}
-
-	if len(*path) > 0 {
-		config.Path = *path
-	} else {
-		config.Path = os.Getenv("VAULT_PATH")
-	}
-
-	return config
-}
-
-// ValidateVaultConfig ensure that all required values are present
-func ValidateVaultConfig(config VaultConfig) error {
 	if len(config.Address) == 0 {
-		return errors.New("Missing Vault address")
+		return config, errors.New("Missing Vault address")
 	}
 
 	if len(config.Path) == 0 {
-		return errors.New("Missing Vault secret path")
+		return config, errors.New("Missing Vault secret path")
 	}
 
 	if len(config.Token) == 0 {
-		return errors.New("Missing Vault token")
+		return config, errors.New("Missing Vault token")
 	}
 
-	return nil
+	return config, nil
 }
 
 // GetVaultSecrets fetches secrets from vault and returns a map[string]string
