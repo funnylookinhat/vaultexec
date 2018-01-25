@@ -47,6 +47,9 @@ func main() {
 
 	// This is a blocking call that runs several go-funcs to manage sending
 	// signals to the process.
+
+	// TODO Combine these:
+	// errCheck(RunWithEnvVars(cmd, vaultSecrets))
 	err = RunWithEnvVars(cmd, vaultSecrets)
 	errCheck(err)
 
