@@ -22,6 +22,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: vaultexec [options] command arg1 arg2 arg3\n")
 		fmt.Fprintf(os.Stderr, "\nOptions:\n")
 		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "Providing any command line option will override the equivalent environment variable.\n")
 	}
 
 	// First read command line options.
@@ -48,10 +49,7 @@ func main() {
 	// This is a blocking call that runs several go-funcs to manage sending
 	// signals to the process.
 
-	// TODO Combine these:
-	// errCheck(RunWithEnvVars(cmd, vaultSecrets))
-	err = RunWithEnvVars(cmd, vaultSecrets)
-	errCheck(err)
+	errCheck(RunWithEnvVars(cmd, vaultSecrets))
 
 	os.Exit(0)
 }

@@ -14,7 +14,7 @@ import (
 
 // RunWithEnvVars runs command with the provided environment variables and returns
 // a channel for when the error processes.
-func RunWithEnvVars(command []string, envVars map[string]string) error {
+func RunWithEnvVars(command []string, envVars map[string]interface{}) error {
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -46,10 +46,6 @@ func RunWithEnvVars(command []string, envVars map[string]string) error {
 	// return the error to the channel so that the process can quit.
 	go func() {
 		log.Println("VaultExec - Waiting for Signals")
-		// TODO range over rather than read from a channel that you know will close
-		// Reading on a closed channel just gives back the zero value[0]
-		//
-		// [0] - https://dave.cheney.net/2014/03/19/channel-axioms
 		for sig := range sigs {
 			log.Println("VaultExec - Received Signal: ", sig)
 			err := cmd.Process.Signal(sig)

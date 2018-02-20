@@ -3,14 +3,15 @@ package main
 // vault.go provides the mechanisms and configurations to fetch secrets from vault.
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
-
-	"github.com/funnylookinhat/easyjson"
 )
 
 // VaultConfig is a set of values for reading secrets from a Vault server over HTTP.
@@ -20,14 +21,29 @@ type VaultConfig struct {
 	Path    string // The path to the secrets to dump.
 }
 
+// VaultSecretResponse is a partial representation of the reponse that comes
+// back when fetching secrets.
+type VaultSecretResponse struct {
+	Errors []string `json:"errors"`
+	// The data that comes back for secrets can be of any type, but the keys will
+	// always be strings.
+	Data          map[string]interface{} `json:"data"`
+	LeaseDuration int64                  `json:"lease_duration"`
+}
+
+// VaultRenewResponse handles fields we care about from renewing the token.
+// TODO - Use in a separate follow-up PR.
+/*
+type VaultRenewResponse struct {
+	Errors []string `json:"errors"`
+	Auth   struct {
+		LeaseDuration int64 `json:"lease_duration"`
+	}
+}
+*/
+
 // GenerateVaultConfig using arguments and environment variables: VAULT_ADDR,
 // VAULT_TOKEN, and VAULT_PATH
-//
-// TODO: Verify & document that command-line args *always* take precedence over
-// environment variables and document it as such. If you intend to run this in a
-// container or something, you lose the ability to change values from the host
-// environment without changing the Docker image since the command-line
-// variables take precedent.
 func GenerateVaultConfig(address *string, token *string, path *string) (VaultConfig, error) {
 	config := VaultConfig{
 		Address: *address,
@@ -51,25 +67,29 @@ func GenerateVaultConfig(address *string, token *string, path *string) (VaultCon
 		config.Address = config.Address[:len(config.Address)-1]
 	}
 
-	// TODO validate Address has a protocol (https, etc.). Could cause an error in
-	// GetVaultSecrets you could catch now.
 	if len(config.Address) == 0 {
-		return config, errors.New("Missing Vault address")
+		return config, errors.New("missing vault address")
+	}
+
+	_, err := url.ParseRequestURI(config.Address)
+
+	if err != nil {
+		return config, fmt.Errorf("invalid vault address: %s", err)
 	}
 
 	if len(config.Path) == 0 {
-		return config, errors.New("Missing Vault secret path")
+		return config, errors.New("missing vault secret path")
 	}
 
 	if len(config.Token) == 0 {
-		return config, errors.New("Missing Vault token")
+		return config, errors.New("missing vault token")
 	}
 
 	return config, nil
 }
 
 // GetVaultSecrets fetches secrets from vault and returns a map[string]string
-func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
+func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
 	client := &http.Client{}
 
 	requestURL := fmt.Sprintf("%s/v1/%s", config.Address, config.Path)
@@ -83,13 +103,13 @@ func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
 	req.Header.Add("X-Vault-Token", config.Token)
 
 	resp, err := client.Do(req)
-	// TODO Handle vault return status code
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("vault server returned status: %d", resp.StatusCode)
-	}
 
 	if err != nil {
 		return nil, err
+	}
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("vault server returned status: %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
@@ -99,48 +119,32 @@ func GetVaultSecrets(config VaultConfig) (map[string]string, error) {
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	// TODO error on empty bodyBytes
+
+	log.Printf("%s", bodyBytes)
 
 	if err != nil {
 		return nil, err
 	}
 
-	bodyJSON, err := easyjson.DecodeJson(bodyBytes)
+	if len(bodyBytes) == 0 {
+		return nil, errors.New("vault server responded with an empty body")
+	}
+
+	var vaultSecretResponse VaultSecretResponse
+
+	err = json.Unmarshal(bodyBytes, &vaultSecretResponse)
 
 	if err != nil {
 		return nil, err
 	}
 
-	/*
-		// Here is an alternative to simplify your JSON extraction since the desired
-		// data is just a string->string object anyway. You don't get to use your
-		// easyjson package, but since the shape of the data is simple, you can just
-		// use an anonymous struct to describe what you want, and then just return
-		// the data directly.
-
-		var data struct {
-			Data map[string]string `json:"data"`
-		}
-		if err := json.Unmarshal(bodyBytes, &data); err != nil {
-			return nil, err
-		}
-		return data
-	*/
-
-	vaultData, err := easyjson.GetMap(bodyJSON, "data")
-
-	if err != nil {
-		return nil, err
+	if len(vaultSecretResponse.Errors) > 0 {
+		return nil, fmt.Errorf(
+			"error fetching secrets: %s",
+			strings.Join(vaultSecretResponse.Errors, ","))
 	}
 
-	vaultSecrets := make(map[string]string)
-
-	// TODO Don't allocate a new string for k when the key type from GetMap is
-	// already a string. All of this is just because the value type of GetMap is
-	// interface{}?
-	for k, v := range vaultData {
-		vaultSecrets[fmt.Sprintf("%s", k)] = fmt.Sprintf("%s", v)
-	}
-
-	return vaultSecrets, nil
+	// TODO - Refactor to return the entire secret response so that we can start
+	// renewing the token periodically
+	return vaultSecretResponse.Data, nil
 }
