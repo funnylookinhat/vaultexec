@@ -39,12 +39,12 @@ func main() {
 	}
 
 	config, err := GenerateVaultConfig(address, token, path)
-	if err != nil {
-		errCheck(err)
-	}
+	errCheck(err)
 
 	vaultSecrets, err := GetVaultSecrets(config)
 	errCheck(err)
+
+	// TODO - Renew vault secret.
 
 	// This is a blocking call that runs several go-funcs to manage sending
 	// signals to the process.
