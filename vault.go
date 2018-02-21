@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -26,7 +25,8 @@ type VaultConfig struct {
 type VaultSecretResponse struct {
 	Errors []string `json:"errors"`
 	// The data that comes back for secrets can be of any type, but the keys will
-	// always be strings.
+	// always be strings.  So rather than have map[string]string, which fails to
+	// unmarshal, we just use map[string]interface{}
 	Data          map[string]interface{} `json:"data"`
 	LeaseDuration int64                  `json:"lease_duration"`
 }
@@ -88,7 +88,7 @@ func GenerateVaultConfig(address *string, token *string, path *string) (VaultCon
 	return config, nil
 }
 
-// GetVaultSecrets fetches secrets from vault and returns a map[string]string
+// GetVaultSecrets fetches secrets from vault and returns a map[string]interface{}
 func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
 	client := &http.Client{}
 
@@ -108,10 +108,6 @@ func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("vault server returned status: %d", resp.StatusCode)
-	}
-
 	defer resp.Body.Close()
 
 	if err != nil {
@@ -120,14 +116,14 @@ func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 
-	log.Printf("%s", bodyBytes)
-
 	if err != nil {
 		return nil, err
 	}
 
 	if len(bodyBytes) == 0 {
-		return nil, errors.New("vault server responded with an empty body")
+		return nil, fmt.Errorf(
+			"vault server error (HTTP status %d): empty response",
+			resp.StatusCode)
 	}
 
 	var vaultSecretResponse VaultSecretResponse
@@ -140,7 +136,8 @@ func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
 
 	if len(vaultSecretResponse.Errors) > 0 {
 		return nil, fmt.Errorf(
-			"error fetching secrets: %s",
+			"vault server error (HTTP status %d): %s",
+			resp.StatusCode,
 			strings.Join(vaultSecretResponse.Errors, ","))
 	}
 
