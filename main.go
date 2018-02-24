@@ -22,6 +22,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: vaultexec [options] command arg1 arg2 arg3\n")
 		fmt.Fprintf(os.Stderr, "\nOptions:\n")
 		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "Providing any command line option will override the equivalent environment variable.\n")
 	}
 
 	// First read command line options.
@@ -37,18 +38,18 @@ func main() {
 		errCheck(errors.New("Must provide a command"))
 	}
 
-	config := GenerateVaultConfig(address, token, path)
-
-	err := ValidateVaultConfig(config)
+	config, err := GenerateVaultConfig(address, token, path)
 	errCheck(err)
 
 	vaultSecrets, err := GetVaultSecrets(config)
 	errCheck(err)
 
+	// TODO - Renew vault secret.
+
 	// This is a blocking call that runs several go-funcs to manage sending
 	// signals to the process.
-	err = RunWithEnvVars(cmd, vaultSecrets)
-	errCheck(err)
+
+	errCheck(RunWithEnvVars(cmd, vaultSecrets))
 
 	os.Exit(0)
 }
