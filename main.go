@@ -54,6 +54,9 @@ func main() {
 			leaseDuration, err := RenewVaultToken(config)
 			if err != nil {
 				log.Printf("error renewing vault token: %s", err)
+				// If there was an error renewing the token, it should stop trying to
+				// renew (otherwise it will repeatedly try to renew with no delay)
+				return
 			}
 			leaseTimeout = time.Duration(leaseDuration) / 2
 		}
