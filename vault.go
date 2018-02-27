@@ -88,7 +88,7 @@ func GenerateVaultConfig(address *string, token *string, path *string) (VaultCon
 func makeVaultRequest(method string, path string, config VaultConfig) ([]byte, error) {
 	client := &http.Client{}
 
-	requestURL := fmt.Sprintf("%s/%s", config.Address, path)
+	requestURL := config.Address + "/" + path
 
 	req, err := http.NewRequest(method, requestURL, nil)
 
