@@ -62,12 +62,7 @@ https://github.com/funnylookinhat/vaultexec/releases
 
 Requirements:
 
-- govendor
 - gox
-
-Install the dependencies:
-
-`govendor sync`
 
 Run the following to generate release binaries:
 
@@ -78,11 +73,6 @@ Run the following to generate release binaries:
 Requirements:
 
 - Docker Compose
-- govendor
-
-Install the dependencies:
-
-`govendor sync`
 
 Start up the docker container:
 
