@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 )
 
 // Simple function to clean up golang error checking for main()
@@ -44,11 +45,22 @@ func main() {
 	vaultSecrets, err := GetVaultSecrets(config)
 	errCheck(err)
 
-	// TODO - Renew vault secret.
+	// Renew the token periodically (half of every lease duration), starting
+	// right now.
+	go func() {
+		leaseTimeout := 0 * time.Second
+		for {
+			time.Sleep(leaseTimeout * time.Second)
+			leaseDuration, err := RenewVaultToken(config)
+			if err != nil {
+				log.Printf("error renewing vault token: %s", err)
+			}
+			leaseTimeout = time.Duration(leaseDuration) / 2
+		}
+	}()
 
 	// This is a blocking call that runs several go-funcs to manage sending
 	// signals to the process.
-
 	errCheck(RunWithEnvVars(cmd, vaultSecrets))
 
 	os.Exit(0)
