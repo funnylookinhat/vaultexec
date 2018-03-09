@@ -18,6 +18,12 @@ VaultExec can be configured both by command line options and environment variabl
 - Vault secret path:
     - Option: `-path secrets/for/my/app`
     - Environment: `VAULT_PATH`
+- Additionally, you can provide a binary command to run to generate a vault config:
+    - Option: `--generate-config some-binary`
+    - This will be run with the environment variables that were passed to VaultExec
+      along with appending any address, token, or secret that was passed as
+      command line arguments.
+    - This command MUST return only JSON in stdout with the following attributes: address, token, path
 
 ## Examples
 

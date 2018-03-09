@@ -30,6 +30,13 @@ func main() {
 	address := flag.String("address", "", "https://path.to.vault:8200 - Can also be set with the ENV VAULT_ADDR")
 	token := flag.String("token", "", "xxxxxxxx-yyyy-yyyy-yyyy-xxxxxxxxxxxx - Can also be set with the ENV VAULT_TOKEN")
 	path := flag.String("path", "", "path/to/secrets/location - Can also be set with the ENV VAULT_PATH")
+	generateConfig := flag.String(
+		"generate-config",
+		"",
+		`A command to run to generate the vault config.
+		Will be passed all environment variables that were passed to VaultExec, along with any of the
+		flags that were passed to vaultexec (as environment variables).
+		Must output a JSON formatted object with an address, token, and path key to stdout.`)
 
 	flag.Parse()
 
@@ -39,8 +46,15 @@ func main() {
 		errCheck(errors.New("Must provide a command"))
 	}
 
-	config, err := GenerateVaultConfig(address, token, path)
+	config, err := MakeVaultConfig(address, token, path)
 	errCheck(err)
+
+	if len(*generateConfig) > 0 {
+		config, err = GenerateVaultConfig(generateConfig, config)
+		errCheck(err)
+	}
+
+	errCheck(ValidateVaultConfig(config))
 
 	vaultSecrets, err := GetVaultSecrets(config)
 	errCheck(err)
