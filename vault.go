@@ -63,6 +63,7 @@ func GenerateVaultConfig(generateConfig *string, config VaultConfig) (generatedV
 	if len(config.Path) > 0 {
 		env = append(env, fmt.Sprintf("VAULT_PATH=%s", config.Path))
 	}
+	cmd.Env = env
 
 	err = cmd.Run()
 	if err != nil {
