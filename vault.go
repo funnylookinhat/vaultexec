@@ -43,7 +43,7 @@ type VaultRenewResponse struct {
 // GenerateVaultConfig creates a new vault config by running a given command on
 // the system.  Will merge the passed in config with the environment variables
 // passed to vaultexec to run the command.
-func GenerateVaultConfig(generateConfig *string, config VaultConfig) (generatedVaultConfig VaultConfig, err error) {
+func GenerateVaultConfig(generateConfig *string, config VaultConfig) (VaultConfig, error) {
 	cmd := exec.Command(*generateConfig)
 
 	var stdoutBytes bytes.Buffer
@@ -65,14 +65,30 @@ func GenerateVaultConfig(generateConfig *string, config VaultConfig) (generatedV
 	}
 	cmd.Env = env
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
-		return
+		return config, err
 	}
 
-	err = json.Unmarshal(stdoutBytes.Bytes(), &generatedVaultConfig)
+	var stdoutVaultConfig VaultConfig
 
-	return
+	err = json.Unmarshal(stdoutBytes.Bytes(), &stdoutVaultConfig)
+
+	if err != nil {
+		return config, err
+	}
+
+	if len(stdoutVaultConfig.Address) > 0 {
+		config.Address = stdoutVaultConfig.Address
+	}
+	if len(stdoutVaultConfig.Token) > 0 {
+		config.Token = stdoutVaultConfig.Token
+	}
+	if len(stdoutVaultConfig.Path) > 0 {
+		config.Path = stdoutVaultConfig.Path
+	}
+
+	return config, nil
 }
 
 // MakeVaultConfig creates a new VaultConfig by handling the parameters and

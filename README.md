@@ -23,7 +23,8 @@ VaultExec can be configured both by command line options and environment variabl
     - This will be run with the environment variables that were passed to VaultExec
       along with appending any address, token, or secret that was passed as
       command line arguments.
-    - This command MUST return only JSON in stdout with the following attributes: address, token, path
+    - This command MUST return only JSON in stdout; it may have any of the following attributes: address, token, path
+    - The returned values will be merged with the configuration that vaultexec was started with.
 
 ## Examples
 
