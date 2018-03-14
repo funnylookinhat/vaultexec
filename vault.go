@@ -91,9 +91,9 @@ func GenerateVaultConfig(generateConfig *string, config VaultConfig) (VaultConfi
 	return config, nil
 }
 
-// MakeVaultConfig creates a new VaultConfig by handling the parameters and
+// NewVaultConfig creates a new VaultConfig by handling the parameters and
 // substituting env when appropriate
-func MakeVaultConfig(address *string, token *string, path *string) (VaultConfig, error) {
+func NewVaultConfig(address *string, token *string, path *string) (VaultConfig, error) {
 	config := VaultConfig{
 		Address: *address,
 		Token:   *token,

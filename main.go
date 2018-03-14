@@ -46,7 +46,7 @@ func main() {
 		errCheck(errors.New("Must provide a command"))
 	}
 
-	config, err := MakeVaultConfig(address, token, path)
+	config, err := NewVaultConfig(address, token, path)
 	errCheck(err)
 
 	if len(*generateConfig) > 0 {
