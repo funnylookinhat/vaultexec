@@ -3,6 +3,7 @@ package main
 // vault.go provides the mechanisms and configurations to fetch secrets from vault.
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,14 +11,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 )
 
 // VaultConfig is a set of values for reading secrets from a Vault server over HTTP.
 type VaultConfig struct {
-	Address string // e.g. https://path.to.vault:8200
-	Token   string
-	Path    string // The path to the secrets to dump.
+	Address string `json:"address"` // e.g. https://path.to.vault:8200
+	Token   string `json:"token"`
+	Path    string `json:"path"` // The path to the secrets to dump.
 }
 
 // VaultSecretResponse is a partial representation of the reponse that comes
@@ -38,9 +40,60 @@ type VaultRenewResponse struct {
 	}
 }
 
-// GenerateVaultConfig using arguments and environment variables: VAULT_ADDR,
-// VAULT_TOKEN, and VAULT_PATH
-func GenerateVaultConfig(address *string, token *string, path *string) (VaultConfig, error) {
+// GenerateVaultConfig creates a new vault config by running a given command on
+// the system.  Will merge the passed in config with the environment variables
+// passed to vaultexec to run the command.
+func GenerateVaultConfig(generateConfig *string, config VaultConfig) (VaultConfig, error) {
+	cmd := exec.Command(*generateConfig)
+
+	var stdoutBytes bytes.Buffer
+	cmd.Stdout = &stdoutBytes
+
+	// We'll just pipe stderr back to stderr
+	cmd.Stderr = os.Stderr
+
+	// Merge vault config environment variables
+	env := os.Environ()
+	if len(config.Address) > 0 {
+		env = append(env, fmt.Sprintf("VAULT_ADDR=%s", config.Address))
+	}
+	if len(config.Token) > 0 {
+		env = append(env, fmt.Sprintf("VAULT_TOKEN=%s", config.Token))
+	}
+	if len(config.Path) > 0 {
+		env = append(env, fmt.Sprintf("VAULT_PATH=%s", config.Path))
+	}
+	cmd.Env = env
+
+	err := cmd.Run()
+	if err != nil {
+		return config, err
+	}
+
+	var stdoutVaultConfig VaultConfig
+
+	err = json.Unmarshal(stdoutBytes.Bytes(), &stdoutVaultConfig)
+
+	if err != nil {
+		return config, err
+	}
+
+	if len(stdoutVaultConfig.Address) > 0 {
+		config.Address = stdoutVaultConfig.Address
+	}
+	if len(stdoutVaultConfig.Token) > 0 {
+		config.Token = stdoutVaultConfig.Token
+	}
+	if len(stdoutVaultConfig.Path) > 0 {
+		config.Path = stdoutVaultConfig.Path
+	}
+
+	return config, nil
+}
+
+// NewVaultConfig creates a new VaultConfig by handling the parameters and
+// substituting env when appropriate
+func NewVaultConfig(address *string, token *string, path *string) (VaultConfig, error) {
 	config := VaultConfig{
 		Address: *address,
 		Token:   *token,
@@ -63,25 +116,31 @@ func GenerateVaultConfig(address *string, token *string, path *string) (VaultCon
 		config.Address = config.Address[:len(config.Address)-1]
 	}
 
+	return config, nil
+}
+
+// ValidateVaultConfig validates a given vaultconfig and returns an error if invalid.
+func ValidateVaultConfig(config VaultConfig) error {
+
 	if len(config.Address) == 0 {
-		return config, errors.New("missing vault address")
+		return errors.New("missing vault address")
 	}
 
 	_, err := url.ParseRequestURI(config.Address)
 
 	if err != nil {
-		return config, fmt.Errorf("invalid vault address: %s", err)
+		return fmt.Errorf("invalid vault address: %s", err)
 	}
 
 	if len(config.Path) == 0 {
-		return config, errors.New("missing vault secret path")
+		return errors.New("missing vault secret path")
 	}
 
 	if len(config.Token) == 0 {
-		return config, errors.New("missing vault token")
+		return errors.New("missing vault token")
 	}
 
-	return config, nil
+	return nil
 }
 
 // Make a request to the vault service with a given method.

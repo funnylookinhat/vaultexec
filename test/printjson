@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Use this to test --generate-config ./test/printjson
+# Pass along the following environment variables:
+# - GEN_VAULT_ADDR
+# - GEN_VAULT_PATH
+# - GEN_VAULT_TOKEN
+
+JSON="{\"address\":\"$GEN_VAULT_ADDR\", \"path\":\"$GEN_VAULT_PATH\", \"token\":\"$GEN_VAULT_TOKEN\"}"
+
+echo "Returning JSON: $JSON" 1>&2
+echo $JSON
