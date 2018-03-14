@@ -46,6 +46,12 @@ vaultexec -address http://my.vault.host:8200 \
   myapp
 ```
 
+**With generate-config:**
+```
+# some-generator must be in the PATH
+vaultexec --generate-config some-generator myapp
+```
+
 **In a Dockerfile:**
 
 ```
