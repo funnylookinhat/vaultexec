@@ -77,9 +77,9 @@ Requirements:
 
 - gox
 
-Run the following to generate release binaries:
+Run the following to generate release binaries for all platforms:
 
-`gox -output="bin/{{.Dir}}_{{.OS}}_{{.Arch}}"`
+`gox -output="bin/{{.Dir}}_{{.OS}}_{{.Arch}}" -tags='netgo' -ldflags='-w'`
 
 ## Testing Locally
 
