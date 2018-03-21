@@ -13,7 +13,6 @@ import (
 func errCheck(err error) {
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }
 
@@ -90,6 +89,4 @@ func main() {
 	// This is a blocking call that runs several go-funcs to manage sending
 	// signals to the process.
 	errCheck(RunWithEnvVars(cmd, vaultSecrets))
-
-	os.Exit(0)
 }
