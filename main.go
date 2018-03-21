@@ -62,6 +62,17 @@ func main() {
 	// Renew the token periodically (half of every lease duration), starting
 	// right now.
 	go func() {
+		renewable, err := GetVaultTokenRenewable(config)
+
+		if err != nil {
+			log.Printf("error determining renewable token: %s", err)
+			return
+		}
+
+		if !renewable {
+			return
+		}
+
 		leaseTimeout := 0 * time.Second
 		for {
 			time.Sleep(leaseTimeout * time.Second)
