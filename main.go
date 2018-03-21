@@ -13,7 +13,6 @@ import (
 func errCheck(err error) {
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 }
 
@@ -62,6 +61,17 @@ func main() {
 	// Renew the token periodically (half of every lease duration), starting
 	// right now.
 	go func() {
+		renewable, err := GetVaultTokenRenewable(config)
+
+		if err != nil {
+			log.Printf("error determining renewable token: %s", err)
+			return
+		}
+
+		if !renewable {
+			return
+		}
+
 		leaseTimeout := 0 * time.Second
 		for {
 			time.Sleep(leaseTimeout * time.Second)
@@ -79,6 +89,4 @@ func main() {
 	// This is a blocking call that runs several go-funcs to manage sending
 	// signals to the process.
 	errCheck(RunWithEnvVars(cmd, vaultSecrets))
-
-	os.Exit(0)
 }

@@ -40,6 +40,14 @@ type VaultRenewResponse struct {
 	}
 }
 
+// VaultLookupTokenResponse is used just for determining renewability
+type VaultLookupTokenResponse struct {
+	Errors []string `json:"errors"`
+	Data   struct {
+		Renewable bool `json:"renewable"`
+	}
+}
+
 // GenerateVaultConfig creates a new vault config by running a given command on
 // the system.  Will merge the passed in config with the environment variables
 // passed to vaultexec to run the command.
@@ -233,4 +241,29 @@ func RenewVaultToken(config VaultConfig) (int64, error) {
 	}
 
 	return vaultRenewResponse.Auth.LeaseDuration, nil
+}
+
+// GetVaultTokenRenewable returns whether or not a VaultConfig has a renewable token
+func GetVaultTokenRenewable(config VaultConfig) (bool, error) {
+	bodyBytes, err := makeVaultRequest("GET", "v1/auth/token/lookup-self", config)
+
+	if err != nil {
+		return false, err
+	}
+
+	var vaultLookupTokenResponse VaultLookupTokenResponse
+
+	err = json.Unmarshal(bodyBytes, &vaultLookupTokenResponse)
+
+	if err != nil {
+		return false, err
+	}
+
+	if len(vaultLookupTokenResponse.Errors) > 0 {
+		return false, fmt.Errorf(
+			"vault server error: %s",
+			strings.Join(vaultLookupTokenResponse.Errors, ","))
+	}
+
+	return vaultLookupTokenResponse.Data.Renewable, nil
 }
