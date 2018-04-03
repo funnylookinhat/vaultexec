@@ -23,6 +23,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nOptions:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "Providing any command line option will override the equivalent environment variable.\n")
+		fmt.Fprintf(os.Stderr, "Note that with multiple paths separated by a delimiter, the fetched values will overwrite previously received values.\n")
 	}
 
 	// First read command line options.
