@@ -29,6 +29,7 @@ func main() {
 	address := flag.String("address", "", "https://path.to.vault:8200 - Can also be set with the ENV VAULT_ADDR")
 	token := flag.String("token", "", "xxxxxxxx-yyyy-yyyy-yyyy-xxxxxxxxxxxx - Can also be set with the ENV VAULT_TOKEN")
 	path := flag.String("path", "", "path/to/secrets/location - Can also be set with the ENV VAULT_PATH")
+	pathDelim := flag.String("path-delim", ",", "Delimeter separating multiple paths. Defaults to a comma (,) - can also be set with ENV VAULT_PATH_DELIM")
 	generateConfig := flag.String(
 		"generate-config",
 		"",
@@ -45,7 +46,7 @@ func main() {
 		errCheck(errors.New("Must provide a command"))
 	}
 
-	config, err := NewVaultConfig(address, token, path)
+	config, err := NewVaultConfig(address, token, path, pathDelim)
 	errCheck(err)
 
 	if len(*generateConfig) > 0 {

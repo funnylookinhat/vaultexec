@@ -17,9 +17,10 @@ import (
 
 // VaultConfig is a set of values for reading secrets from a Vault server over HTTP.
 type VaultConfig struct {
-	Address string `json:"address"` // e.g. https://path.to.vault:8200
-	Token   string `json:"token"`
-	Path    string `json:"path"` // The path to the secrets to dump.
+	Address   string `json:"address"` // e.g. https://path.to.vault:8200
+	Token     string `json:"token"`
+	Path      string `json:"path"`       // The path to the secrets to dump.
+	PathDelim string `json:"path-delim"` // Delimeter for multiple paths
 }
 
 // VaultSecretResponse is a partial representation of the reponse that comes
@@ -71,6 +72,9 @@ func GenerateVaultConfig(generateConfig *string, config VaultConfig) (VaultConfi
 	if len(config.Path) > 0 {
 		env = append(env, fmt.Sprintf("VAULT_PATH=%s", config.Path))
 	}
+	if len(config.PathDelim) > 0 {
+		env = append(env, fmt.Sprintf("VAULT_PATH_DELIM=%s", config.PathDelim))
+	}
 	cmd.Env = env
 
 	err := cmd.Run()
@@ -95,17 +99,21 @@ func GenerateVaultConfig(generateConfig *string, config VaultConfig) (VaultConfi
 	if len(stdoutVaultConfig.Path) > 0 {
 		config.Path = stdoutVaultConfig.Path
 	}
+	if len(stdoutVaultConfig.PathDelim) > 0 {
+		config.PathDelim = stdoutVaultConfig.PathDelim
+	}
 
 	return config, nil
 }
 
 // NewVaultConfig creates a new VaultConfig by handling the parameters and
 // substituting env when appropriate
-func NewVaultConfig(address *string, token *string, path *string) (VaultConfig, error) {
+func NewVaultConfig(address *string, token *string, path *string, pathDelim *string) (VaultConfig, error) {
 	config := VaultConfig{
-		Address: *address,
-		Token:   *token,
-		Path:    *path,
+		Address:   *address,
+		Token:     *token,
+		Path:      *path,
+		PathDelim: *pathDelim,
 	}
 
 	// Then if any options are still blank we read the environment variables.
@@ -117,6 +125,15 @@ func NewVaultConfig(address *string, token *string, path *string) (VaultConfig, 
 	}
 	if len(config.Path) == 0 {
 		config.Path = os.Getenv("VAULT_PATH")
+	}
+
+	// Because we default path delimeter to a comma, we check if it's blank or
+	// if it's the default value - and then only swap in the environment value if
+	// it's not blank.
+	if len(config.PathDelim) == 0 || config.PathDelim == "," {
+		if len(os.Getenv("VAULT_PATH_DELIM")) != 0 {
+			config.PathDelim = os.Getenv("VAULT_PATH_DELIM")
+		}
 	}
 
 	// Ensure that the address doesn't end in a trailing slash.
@@ -146,6 +163,10 @@ func ValidateVaultConfig(config VaultConfig) error {
 
 	if len(config.Token) == 0 {
 		return errors.New("missing vault token")
+	}
+
+	if len(config.PathDelim) == 0 {
+		return errors.New("missing vault secret path delimeter")
 	}
 
 	return nil
@@ -192,9 +213,33 @@ func makeVaultRequest(method string, path string, config VaultConfig) ([]byte, e
 	return bodyBytes, nil
 }
 
-// GetVaultSecrets fetches secrets from vault and returns a map[string]interface{}
+// GetVaultSecrets fetches secrets from vault given a VaultConfig and returns a map[string]interface{}
 func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
-	bodyBytes, err := makeVaultRequest("GET", "v1/"+config.Path, config)
+	var err error
+	var secrets map[string]interface{}
+
+	// These are the secrets we will return by merging the results of each fetch.
+	mergedSecrets := make(map[string]interface{})
+
+	paths := strings.Split(config.Path, config.PathDelim)
+
+	for _, path := range paths {
+		secrets, err = GetVaultSecretsAtPath(path, config)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range secrets {
+			mergedSecrets[k] = v
+		}
+	}
+
+	return mergedSecrets, nil
+}
+
+// GetVaultSecretsAtPath fetches secrets from vault for a specific path.
+func GetVaultSecretsAtPath(path string, config VaultConfig) (map[string]interface{}, error) {
+	bodyBytes, err := makeVaultRequest("GET", "v1/"+path, config)
 
 	if err != nil {
 		return nil, err
