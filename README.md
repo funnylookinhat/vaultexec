@@ -18,6 +18,13 @@ VaultExec can be configured both by command line options and environment variabl
 - Vault secret path:
     - Option: `-path secrets/for/my/app`
     - Environment: `VAULT_PATH`
+    - You can provide multiple comma-separated paths within the same argument.
+    - Note that secret paths will be read in order, and if a key already exists
+      it will be overwritten by a later secret if it has the same key.
+    - If commas are required for your path names, you can change teh delimiter.
+- Vault secret path delimiter:
+    - Option: `-path-delim ,`
+    - Environment: `VAULT_PATH_DELIM`
 - Additionally, you can provide a binary command to run to generate a vault config:
     - Option: `--generate-config some-binary`
     - This will be run with the environment variables that were passed to VaultExec
@@ -50,6 +57,23 @@ vaultexec -address http://my.vault.host:8200 \
 ```
 # some-generator must be in the PATH
 vaultexec --generate-config some-generator myapp
+```
+
+**With multiple secret paths:**
+```
+vaultexec -address http://my.vault.host:8200 \
+  -token a44cb316-4bf9-4c16-bbed-ae37e068683d \
+  -path secrets/for/my/app,secrets/another/secret/path \
+  myapp
+```
+
+**Or using a custom delimiter:**
+```
+vaultexec -address http://my.vault.host:8200 \
+  -token a44cb316-4bf9-4c16-bbed-ae37e068683d \
+  -path secrets/for/my/app,1__secrets/for/my/app,2 \
+  -path-delim __ \
+  myapp
 ```
 
 **In a Dockerfile:**
