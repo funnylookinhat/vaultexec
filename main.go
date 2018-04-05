@@ -23,12 +23,14 @@ func main() {
 		fmt.Fprintf(os.Stderr, "\nOptions:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "Providing any command line option will override the equivalent environment variable.\n")
+		fmt.Fprintf(os.Stderr, "Note that with multiple paths separated by a delimiter, the fetched values will overwrite previously received values.\n")
 	}
 
 	// First read command line options.
 	address := flag.String("address", "", "https://path.to.vault:8200 - Can also be set with the ENV VAULT_ADDR")
 	token := flag.String("token", "", "xxxxxxxx-yyyy-yyyy-yyyy-xxxxxxxxxxxx - Can also be set with the ENV VAULT_TOKEN")
 	path := flag.String("path", "", "path/to/secrets/location - Can also be set with the ENV VAULT_PATH")
+	pathDelim := flag.String("path-delim", ",", "Delimeter separating multiple paths. Defaults to a comma (,) - can also be set with ENV VAULT_PATH_DELIM")
 	generateConfig := flag.String(
 		"generate-config",
 		"",
@@ -45,7 +47,7 @@ func main() {
 		errCheck(errors.New("Must provide a command"))
 	}
 
-	config, err := NewVaultConfig(address, token, path)
+	config, err := NewVaultConfig(address, token, path, pathDelim)
 	errCheck(err)
 
 	if len(*generateConfig) > 0 {

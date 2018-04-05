@@ -4,7 +4,8 @@ services:
   app:
     image: golang:1.9.2-alpine
     depends_on:
-      - vault_init
+      - vault_init_a
+      - vault_init_b
       - vault
     volumes:
       - .:/go/src/vaultexec
@@ -13,7 +14,7 @@ services:
     environment:
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: test_token
-      VAULT_PATH: secret/test_secrets/all
+      VAULT_PATH: secret/test_secrets_a/all,secret/test_secrets_b/all
 
   vault:
     image: vault
@@ -24,8 +25,8 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: test_token
 
-  # Initializes local vault with dev secrets then terminates
-  vault_init:
+  # Initializes local vault with dev secrets at secret/test_secrets_a/all then terminates
+  vault_init_a:
     image: vault
     depends_on:
       - vault
@@ -33,6 +34,19 @@ services:
       - IPC_LOCK
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: test_token
-    command: 'sh -c "VAULT_ADDR=http://vault:8200 VAULT_TOKEN=$$VAULT_DEV_ROOT_TOKEN_ID vault write secret/test_secrets/all @/test_secrets.json"'
+    command: 'sh -c "VAULT_ADDR=http://vault:8200 VAULT_TOKEN=$$VAULT_DEV_ROOT_TOKEN_ID vault write secret/test_secrets_a/all @/test_secrets_a.json"'
     volumes:
-      - ./test/secrets.json:/test_secrets.json
+      - ./test/secrets_a.json:/test_secrets_a.json
+
+  # Initializes local vault with dev secrets at secret/test_secrets_b/all then terminates
+  vault_init_b:
+    image: vault
+    depends_on:
+      - vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: test_token
+    command: 'sh -c "VAULT_ADDR=http://vault:8200 VAULT_TOKEN=$$VAULT_DEV_ROOT_TOKEN_ID vault write secret/test_secrets_b/all @/test_secrets_b.json"'
+    volumes:
+      - ./test/secrets_b.json:/test_secrets_b.json
