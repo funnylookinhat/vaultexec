@@ -213,7 +213,8 @@ func makeVaultRequest(method string, path string, config VaultConfig) ([]byte, e
 	return bodyBytes, nil
 }
 
-// GetVaultSecrets fetches secrets from vault given a VaultConfig and returns a map[string]interface{}
+// GetVaultSecrets loops through all of the secret paths that are provided and
+// returns a single map representing the merged results of every lookup from vault.
 func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
 	var err error
 	var secrets map[string]interface{}
@@ -237,7 +238,8 @@ func GetVaultSecrets(config VaultConfig) (map[string]interface{}, error) {
 	return mergedSecrets, nil
 }
 
-// GetVaultSecretsAtPath fetches secrets from vault for a specific path.
+// GetVaultSecretsAtPath does a lookup for a specific secret path from vault
+// and returns a map with the result.
 func GetVaultSecretsAtPath(path string, config VaultConfig) (map[string]interface{}, error) {
 	bodyBytes, err := makeVaultRequest("GET", "v1/"+path, config)
 
