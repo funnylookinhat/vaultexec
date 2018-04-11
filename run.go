@@ -22,7 +22,7 @@ func RunWithEnvVars(command []string, envVars map[string]interface{}) error {
 	// Add the environment variables to the command.
 	env := os.Environ()
 	for k, v := range envVars {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
+		env = append(env, fmt.Sprintf("%s=%v", k, v))
 	}
 	cmd.Env = env
 
